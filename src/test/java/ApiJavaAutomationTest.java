@@ -1,5 +1,6 @@
 import static io.restassured.RestAssured.given;
 
+import constant.TestingData;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.response.ResponseBody;
@@ -8,121 +9,60 @@ import org.junit.jupiter.api.Test;
 import response.getmessage.GetMessageResponse;
 import response.sendmessage.SendMessageResponse;
 
-public class ApiJavaAutomationTest {
-
-  public final static String URL = "http://pretest-qa.dcidev.id";
+public class ApiJavaAutomationTest implements TestingData {
 
   @Test
-  public void getMessage() {
+  public void getMessageWithValidDataShouldReturn200() {
     //specify request
-    Response response = given().log().all().baseUri(URL).basePath("/api/v1/message")
+    Response response = given().log().all().baseUri(URL).basePath(BASEPATH)
         .contentType(ContentType.JSON).accept(ContentType.JSON)
-         .header("Authorization","d7ef39693fe29257ae89ecde0cd50df7c321d2de56e8d3954806a9e8a96deee5")
-            .pathParam("message","61bec2ba-3cff-4b2a-90f5-e63ba9960b3e")
-        .get("/{message}");
+         .header("Authorization",AUTH)
+            .pathParam("userId","61bec2ba-3cff-4b2a-90f5-e63ba9960b3e")
+        .get("/{userId}");
 
-    //deserialize java object to json
+    //deserialize java object to json for response assertion
     ResponseBody responseBody = response.getBody();
     GetMessageResponse body = responseBody.as(GetMessageResponse.class);
 
     response.getBody().prettyPrint();
 
     int statusCode = response.getStatusCode();
+    //assertion
     Assertions.assertEquals(statusCode, 200);
-    Assertions.assertEquals("79d3d61f-e7aa-473d-9c8e-fc1f695b9bd2",body.getData().getChat().get(0).getId());
-    Assertions.assertEquals("test privy",body.getData().getChat().get(0).getMessage());
-    Assertions.assertEquals("sender",body.getData().getChat().get(0).getType());
-    Assertions.assertNotNull(body.getData().getChat().get(0).getCreatedAt());
-    Assertions.assertNotNull(body.getData().getChat().get(0).getUserSender());
+    for(int i=0;i<body.getData().getChat().size();i++){
+      Assertions.assertNotNull(body.getData().getChat().get(i).getId());
+      Assertions.assertNotNull(body.getData().getChat().get(i).getMessage());
+      Assertions.assertNotNull(body.getData().getChat().get(i).getCreatedAt());
+      Assertions.assertNotNull(body.getData().getChat().get(i).getUserSender());
+      Assertions.assertNotNull(body.getData().getChat().get(i).getUserReceiver());
+      Assertions.assertEquals("sender",body.getData().getChat().get(i).getType());
+    }
+
     System.out.println("The response status is " + statusCode);
   }
 
 
   @Test
-  public void sendMessage() {
+  public void sendMessageWithValidDataShouldReturn201() {
+    //specify request
     String requestBody = "{\n"
         + "    \"user_id\": \"61bec2ba-3cff-4b2a-90f5-e63ba9960b3e\",\n"
         + "    \"message\": \"Privy Technical Test\"\n"
         + "}";
-
-    Response response = given().log().all().baseUri(URL).basePath("/api/v1/message")
+    Response response = given().log().all().baseUri(URL).basePath(BASEPATH)
         .contentType(ContentType.JSON).accept(ContentType.JSON)
-            .header("Authorization","d7ef39693fe29257ae89ecde0cd50df7c321d2de56e8d3954806a9e8a96deee5")
+            .header("Authorization",AUTH)
             .body(requestBody)
         .post("/send");
 
     //deserialize java object to json
     ResponseBody responseBody = response.getBody();
     SendMessageResponse body = responseBody.as(SendMessageResponse.class);
-
     response.getBody().prettyPrint();
-
-
     int statusCode = response.getStatusCode();
-    Assertions.assertEquals(statusCode, 201);
-    Assertions.assertEquals(body.getData(),"Success send message");
+    //Assertion
+    Assertions.assertEquals(201,statusCode);
+    Assertions.assertEquals("Success send message",body.getData());
     System.out.println("The response status is " + statusCode);
   }
-
-
-  @Test
-  public void updateUser() {
-
-    String requestBodyAdd = "{\n"
-        + "    \"name\": \"Tri Abror\",\n"
-        + "    \"job\": \"SEIT\"\n"
-        + "}";
-
-    String requestBodyUpdate = "{\n"
-        + "    \"name\": \"Hendri\",\n"
-        + "    \"job\": \"SEIT\"\n"
-        + "}";
-
-    Response responseAdd = given().log().all().baseUri(URL).basePath("/api")
-        .contentType(ContentType.JSON).accept(ContentType.JSON)
-        .body(requestBodyAdd)
-        .post("/users");
-
-    responseAdd.getBody().prettyPrint();
-
-    Response responseUpdate = given().log().all().baseUri(URL).basePath("/api")
-        .contentType(ContentType.JSON).accept(ContentType.JSON)
-        .body(requestBodyUpdate)
-        .pathParam("userId", responseAdd.path("id"))
-        .put("/users/{userId}");
-
-    responseUpdate.getBody().prettyPrint();
-
-    int statusCode = responseUpdate.getStatusCode();
-    Assertions.assertEquals(statusCode, 200);
-    System.out.println("The responseAdd status is " + statusCode);
-  }
-
-
-  @Test
-  public void deleteeUser() {
-
-    String requestBody = "{\n"
-        + "    \"name\": \"Tri Abror\",\n"
-        + "    \"job\": \"SEIT\"\n"
-        + "}";
-
-    Response responseAdd = given().log().all().baseUri(URL).basePath("/api")
-        .contentType(ContentType.JSON).accept(ContentType.JSON)
-        .body(requestBody)
-        .post("/users");
-
-    responseAdd.getBody().prettyPrint();
-
-    Response responseDelete = given().log().all().baseUri(URL).basePath("/api")
-        .contentType(ContentType.JSON).accept(ContentType.JSON)
-        .pathParam("userId", responseAdd.path("id"))
-        .delete("/users/{userId}");
-
-    int statusCode = responseDelete.getStatusCode();
-    Assertions.assertEquals(statusCode, 204);
-    System.out.println("The response status is " + statusCode);
-  }
-
-
 }
